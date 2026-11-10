@@ -1,0 +1,15 @@
+--- a/src/pishutdown.c
++++ b/src/pishutdown.c
+@@ -251,8 +251,10 @@
+     if (!strcmp (data, "exit"))
+     {
+         system ("/usr/bin/pkill orca");
+-        if (!system ("pgrep labwc > /dev/null")) system ("/usr/bin/labwc -e");
+-        else system ("/usr/bin/pkill lxsession");
++        if (g_strcmp0 (getenv ("XDG_SESSION_TYPE"), "x11") == 0)
++            system ("/usr/bin/lxsession-logout");
++        else
++            system ("/usr/bin/labwc -e");
+     }
+ }
+ 
