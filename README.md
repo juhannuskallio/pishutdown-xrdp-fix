@@ -5,6 +5,7 @@ Platform: Raspberry Pi 4 Model B Rev 1.4\
 Operating system: Raspberry Pi OS Trixie (Debian 13, aarch64)\
 Remote desktop: xrdp, using an X11 session\
 User: raspi
+Note: I used AI to help troubleshooting, fixing and generating this document.
 
 ## 1. Background
 
@@ -38,18 +39,9 @@ running under Labwc:
 
 ``` bash
 if (!system ("pgrep labwc > /dev/null"))
-```
-
-``` bash
-system ("/usr/bin/labwc -e");
-```
-
-``` bash
+  system ("/usr/bin/labwc -e");
 else
-```
-
-``` bash
-system ("/usr/bin/pkill lxsession");
+  system ("/usr/bin/pkill lxsession");
 ```
 
 This detection was unreliable in the xrdp environment.
@@ -71,33 +63,12 @@ environment variable XDG_SESSION_TYPE.
 
 ``` bash
 if (!strcmp (data, "exit"))
-```
-
-``` bash
 {
-```
-
-``` bash
-system ("/usr/bin/pkill orca");
-```
-
-``` bash
-if (g_strcmp0 (getenv ("XDG_SESSION_TYPE"), "x11") == 0)
-```
-
-``` bash
-system ("/usr/bin/lxsession-logout");
-```
-
-``` bash
-else
-```
-
-``` bash
-system ("/usr/bin/labwc -e");
-```
-
-``` bash
+  system ("/usr/bin/pkill orca");
+  if (g_strcmp0 (getenv ("XDG_SESSION_TYPE"), "x11") == 0)
+    system ("/usr/bin/lxsession-logout");
+  else
+    system ("/usr/bin/labwc -e");
 }
 ```
 
@@ -114,37 +85,13 @@ essential logic change, not a complete diff of the source file.
 
 ``` bash
 - if (!system ("pgrep labwc > /dev/null"))
-```
-
-``` bash
 -     system ("/usr/bin/labwc -e");
-```
-
-``` bash
 - else
-```
-
-``` bash
 -     system ("/usr/bin/pkill lxsession");
-```
-
-``` bash
 + system ("/usr/bin/pkill orca");
-```
-
-``` bash
 + if (g_strcmp0 (getenv ("XDG_SESSION_TYPE"), "x11") == 0)
-```
-
-``` bash
 +     system ("/usr/bin/lxsession-logout");
-```
-
-``` bash
 + else
-```
-
-``` bash
 +     system ("/usr/bin/labwc -e");
 ```
 
@@ -154,18 +101,9 @@ The original Reboot and Shutdown commands in pishutdown.c were:
 
 ``` bash
 if (!strcmp (data, "shutdown"))
-```
-
-``` bash
-system ("/usr/bin/pkill orca;/sbin/shutdown -h now");
-```
-
-``` bash
+  system ("/usr/bin/pkill orca;/sbin/shutdown -h now");
 if (!strcmp (data, "reboot"))
-```
-
-``` bash
-system ("/usr/bin/pkill orca;/sbin/reboot");
+  system ("/usr/bin/pkill orca;/sbin/reboot");
 ```
 
 These commands were not modified. The problem was not in the commands
@@ -183,13 +121,7 @@ The relevant output was:
 
 ``` bash
 implicit any: auth_admin_keep
-```
-
-``` bash
 implicit inactive: auth_admin_keep
-```
-
-``` bash
 implicit active: yes
 ```
 
@@ -205,9 +137,7 @@ login1 refers to the systemd-logind service, which manages login
 sessions and system power operations. The relevant Polkit action IDs
 are:
 
-| Action ID \| Purpose \|
-
-| --- \| --- \|
+| Action ID \| Purpose \| --- \| --- \|
 
 | org.freedesktop.login1.reboot \| Reboot the system \|
 
@@ -229,9 +159,6 @@ desktop session using:
 
 ``` bash
 loginctl show-session "$XDG_SESSION_ID" \
-```
-
-``` bash
 -p Name -p Type -p Class -p Active -p Remote -p Seat
 ```
 
@@ -239,25 +166,10 @@ The relevant output was:
 
 ``` bash
 Name=raspi
-```
-
-``` bash
 Seat=
-```
-
-``` bash
 Remote=yes
-```
-
-``` bash
 Type=x11
-```
-
-``` bash
 Class=user
-```
-
-``` bash
 Active=yes
 ```
 
@@ -299,9 +211,6 @@ Before the Polkit rule was added, the result was:
 
 ``` bash
 polkit\56retains_authorization_after_challenge=1
-```
-
-``` bash
 Authorization requires authentication and -u wasn't passed.
 ```
 
@@ -331,45 +240,16 @@ Contents:
 
 ``` bash
 polkit.addRule(function(action, subject) {
-```
-
-``` bash
-if (subject.user == "raspi" &&
-```
-
-``` bash
-(
-```
-
-``` bash
-action.id == "org.freedesktop.login1.reboot" ||
-```
-
-``` bash
-action.id == "org.freedesktop.login1.reboot-multiple-sessions" ||
-```
-
-``` bash
-action.id == "org.freedesktop.login1.power-off" ||
-```
-
-``` bash
-action.id == "org.freedesktop.login1.power-off-multiple-sessions"
-```
-
-``` bash
-)) {
-```
-
-``` bash
-return polkit.Result.YES;
-```
-
-``` bash
-}
-```
-
-``` bash
+  if (subject.user == "raspi" &&
+  (
+    action.id == "org.freedesktop.login1.reboot" ||
+    action.id == "org.freedesktop.login1.reboot-multiple-sessions" ||
+    action.id == "org.freedesktop.login1.power-off" ||
+    action.id == "org.freedesktop.login1.power-off-multiple-sessions"
+  )) 
+  {
+      return polkit.Result.YES;
+  }
 });
 ```
 
@@ -395,17 +275,8 @@ The program was built in the working directory:
 
 ``` bash
 cd ~/pishutdown-0.43-work
-```
-
-``` bash
 meson setup build
-```
-
-``` bash
 meson configure build --prefix=/usr
-```
-
-``` bash
 meson compile -C build
 ```
 
@@ -421,13 +292,7 @@ The modified binary was installed:
 
 ``` bash
 sudo install -o root -g root -m 755 \
-```
-
-``` bash
 ~/pishutdown-0.43-work/build/src/pishutdown \
-```
-
-``` bash
 /usr/bin/pishutdown
 ```
 
@@ -441,9 +306,7 @@ desktop menu.
 The following functions were tested using the installed, modified
 pishutdown program:
 
-| Function \| Result \|
-
-| --- \| --- \|
+| Function \| Result \| --- \| --- \|
 
 | Logout \| Successful -- the xrdp session closes \|
 
