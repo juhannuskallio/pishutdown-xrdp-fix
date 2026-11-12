@@ -293,6 +293,7 @@ The modified program was then tested from the normal Raspberry Pi
 desktop menu.
 
 ## 5. Test results
+Testing was made in xrdp/X11/LXsession/Openbox -environment.
 
 ### pishutdown interface
 
