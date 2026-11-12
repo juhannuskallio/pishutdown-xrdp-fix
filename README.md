@@ -1,17 +1,16 @@
-# Raspberry Pi OS Trixie: Fixing pishutdown 0.43 for xrdp Sessions
+# Raspberry Pi OS Trixie: Fixing logout problem for xrdp Sessions to pishutdown 0.43
 
 Date: 9 November 2026\
 Platform: Raspberry Pi 4 Model B Rev 1.4\
 Operating system: Raspberry Pi OS Trixie (Debian 13, aarch64)\
 Remote desktop: xrdp, using an X11 session\
-User: raspi
 Note: I used AI to help troubleshooting, fixing and generating this document.
 
 ## 1. Background
 
 After installing Raspberry Pi OS Trixie, the Windows Remote Desktop
 connection worked, but the desktop's Logout, Reboot and Shutdown
-functions did not all behave correctly.
+functions did not work at all.
 
 The installed version of pishutdown was 0.43. The original source
 package was obtained using apt source pishutdown.
@@ -80,7 +79,7 @@ The resulting behaviour is:
 
 ### Essential source-code difference
 
-The following illustrates the change in the Logout handling. This is the
+The following illustrates the change in the Logout handling of pishutdown.c. This is the
 essential logic change, not a complete diff of the source file.
 
 ``` bash
@@ -97,7 +96,7 @@ essential logic change, not a complete diff of the source file.
 
 ## 3. Reboot and Shutdown problem: Polkit authorization
 
-The original Reboot and Shutdown commands in pishutdown.c were:
+The Reboot and Shutdown commands in pishutdown.c are:
 
 ``` bash
 if (!strcmp (data, "shutdown"))
@@ -125,7 +124,7 @@ implicit inactive: auth_admin_keep
 implicit active: yes
 ```
 
-The same inspection was also performed for:
+The same inspection (with same results) was also performed for:
 
 ``` bash
 org.freedesktop.login1.reboot-multiple-sessions
@@ -137,17 +136,12 @@ login1 refers to the systemd-logind service, which manages login
 sessions and system power operations. The relevant Polkit action IDs
 are:
 
-| Action ID \| Purpose \| --- \| --- \|
-
-| org.freedesktop.login1.reboot \| Reboot the system \|
-
-| org.freedesktop.login1.reboot-multiple-sessions \| Reboot when
-  multiple sessions exist \|
-
-| org.freedesktop.login1.power-off \| Power off the system \|
-
-| org.freedesktop.login1.power-off-multiple-sessions \| Power off when
-  multiple sessions exist \|
+| **Action ID** | **Purpose** |
+| --- | --- |
+| org.freedesktop.login1.reboot | Reboot the system |
+| org.freedesktop.login1.reboot-multiple-sessions | Reboot when  multiple sessions exist |
+| org.freedesktop.login1.power-off | Power off the system |
+| org.freedesktop.login1.power-off-multiple-sessions | Power off when multiple sessions exist |
 
 These are separate authorization actions. The rule added later covers
 all four.
@@ -179,15 +173,14 @@ The important property is:
 Remote=yes
 ```
 
-The xrdp session is classified as a remote session, even though it is
-active.
+The xrdp session was classified as a remote and active session.
 
 ### 3.4 Why the authorization failed
 
 The important distinction is that the implicit active authorization
 applies to active local sessions.
 
-The xrdp session is remote, so it uses the implicit any policy rather
+The xrdp session is remote, so it uses the **implicit any** policy rather
 than the local-session implicit active policy.
 
 -   implicit active: yes allows the operation without further
@@ -306,15 +299,11 @@ desktop menu.
 The following functions were tested using the installed, modified
 pishutdown program:
 
-| Function \| Result \| --- \| --- \|
-
-| Logout \| Successful -- the xrdp session closes \|
-
-| Reboot \| Successful -- the Pi restarts and the remote connection can
-  be re-established \|
-
-| Shutdown \| Successful -- the Pi shuts down and the remote connection
-  becomes unavailable until the Pi is powered on again \|
+| Function | Result |
+| --- | --- |
+| Logout | Successful -- the xrdp session closes |
+| Reboot | Successful -- the Pi restarts and the remote connection can be re-established |
+| Shutdown | Successful -- the Pi shuts down and the remote connection becomes unavailable until the Pi is powered on again |
 
 ### Separate Raspberry Pi desktop Logout interface
 
